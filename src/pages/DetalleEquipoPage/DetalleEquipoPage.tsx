@@ -1,75 +1,174 @@
-// =================================================================
-// Archivo: src/pages/DetalleEquipoPage/DetalleEquipoPage.tsx
-// =================================================================
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { equiposService, type Equipo } from '../../services/equiposService';
-import { useSpaceHubData } from '../../context/DataContext';
+import { useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+
+const STORAGE_KEY = 'equipos';
+
+const equipos = {
+  'SENA-1024': {
+    tipo: 'Computador Portátil',
+    marca: 'HP',
+    serial: 'HP-2024-1024',
+    responsable: 'Aprendiz A',
+    estado: 'Activo',
+    ubicacion: 'Laboratorio 1',
+    procesador: 'Intel Core i5 12va gen',
+    memoria: '16 GB RAM',
+    almacenamiento: '512 GB SSD',
+    historial: ['Se realizó mantenimiento preventivo', 'Actualización de software', 'Cambio de teclado'],
+  },
+  'SENA-2048': {
+    tipo: 'Monitor',
+    marca: 'Dell',
+    serial: 'DEL-2048-88',
+    responsable: 'Aprendiz B',
+    estado: 'Mantenimiento',
+    ubicacion: 'Taller 2',
+    procesador: 'N/A',
+    memoria: 'N/A',
+    almacenamiento: 'N/A',
+    historial: ['Se detectó falla en la pantalla', 'Solicitado repuesto', 'Pendiente revisión'],
+  },
+};
 
 export default function DetalleEquipoPage() {
   const { placaSena } = useParams<{ placaSena: string }>();
-  const { equipos, refrescarEquipos } = useSpaceHubData();
-  const [equipo, setEquipo] = useState<Equipo | null>(null);
-  const [ram, setRam] = useState('16GB DDR4');
-  const [ambiente, setAmbiente] = useState('');
-  const [estado, setEstado] = useState<'Operativo' | 'En Mantenimiento'>('Operativo');
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => {
-    const found = equipos.find((e) => e.placaSena.toUpperCase() === placaSena?.toUpperCase());
-    if (found) {
-      setEquipo(found);
-      setRam(found.ram);
-      setAmbiente(found.ambiente);
-      setEstado(found.estado);
-    }
-  }, [equipos, placaSena]);
+  const guardados = useMemo(() => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
 
-  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError(null);
     try {
-      await equiposService.update(placaSena!, { ram, ambiente, estado });
-      await refrescarEquipos();
-      navigate('/inventario');
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar');
+      return JSON.parse(raw);
+    } catch {
+      return [];
     }
+  }, []);
+
+  const equipoGuardado = guardados.find((item: any) => item.placa === placaSena);
+  const equipo = placaSena ? equipos[placaSena as keyof typeof equipos] : undefined;
+
+  const datos = equipoGuardado ?? equipo ?? {
+    tipo: 'Equipo no encontrado',
+    marca: '-',
+    serial: '-',
+    responsable: '-',
+    estado: 'Sin información',
+    ubicacion: '-',
+    procesador: '-',
+    memoria: '-',
+    almacenamiento: '-',
+    historial: ['Sin historial disponible'],
   };
 
-  if (!equipo && !error) return <div className="p-6 text-plaster text-center font-mono text-xs">Cargando recurso...</div>;
+  const [form, setForm] = useState({
+    tipo: datos.tipo,
+    marca: datos.marca,
+    serial: datos.serial,
+    responsable: datos.responsable,
+    estado: datos.estado,
+    ubicacion: datos.ubicacion,
+    procesador: datos.procesador,
+    memoria: datos.memoria,
+    almacenamiento: datos.almacenamiento,
+  });
+
+  const handleEdit = () => setIsEditing(true);
+
+  const handleSave = () => {
+    const lista = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
+    const nuevaLista = lista.map((item: any) =>
+      item.placa === placaSena ? { ...item, ...form, placa: placaSena } : item,
+    );
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nuevaLista));
+    setIsEditing(false);
+    window.location.reload();
+  };
 
   return (
-    <div className="max-w-lg mx-auto p-6 bg-slate-800 border border-slate-700 rounded-2xl text-plaster shadow-xl">
-      <h2 className="text-xl font-bold text-sena-green mb-1">Editar Equipo (PUT)</h2>
-      <p className="text-xs text-slate-400 mb-4 font-mono">Placa SENA: <span className="text-plaster font-bold">{placaSena}</span></p>
-      {error && <div className="p-3 mb-4 bg-rose-900/80 border border-rose-500 rounded-xl text-rose-200 text-xs font-mono">{error}</div>}
-      <form onSubmit={handleUpdate} className="space-y-4 font-mono text-xs">
-        <div>
-          <label className="block font-bold text-slate-300 mb-1">Memoria RAM</label>
-          <select value={ram} onChange={(e) => setRam(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-plaster focus:outline-none focus:border-sena-green">
-            <option value="8GB DDR4">8GB DDR4</option>
-            <option value="16GB DDR4">16GB DDR4</option>
-            <option value="32GB DDR5">32GB DDR5</option>
-          </select>
+    <div style={{ maxWidth: 980, margin: '0 auto', padding: 8 }}>
+      <div style={{ marginBottom: 18 }}>
+        <Link to="/inventario" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: 700 }}>
+          ← Volver al inventario
+        </Link>
+      </div>
+
+      <div
+        style={{
+          background: '#fff',
+          border: '1px solid #e2e8f0',
+          borderRadius: 18,
+          padding: 24,
+          boxShadow: '0 10px 30px rgba(15, 23, 42, 0.05)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <p style={{ margin: 0, color: '#0f766e', fontWeight: 700 }}>Ficha técnica</p>
+            <h2 style={{ margin: '8px 0 0' }}>{datos.tipo}</h2>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                background: datos.estado === 'Activo' ? '#dcfce7' : '#fef3c7',
+                color: datos.estado === 'Activo' ? '#166534' : '#92400e',
+                borderRadius: 999,
+                padding: '8px 12px',
+                fontWeight: 700,
+              }}
+            >
+              {datos.estado}
+            </span>
+
+            {!isEditing ? (
+              <button type="button" onClick={handleEdit} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}>
+                Editar
+              </button>
+            ) : (
+              <button type="button" onClick={handleSave} style={{ padding: '8px 12px', borderRadius: 8, border: 'none', background: '#0f766e', color: '#fff', cursor: 'pointer' }}>
+                Guardar
+              </button>
+            )}
+          </div>
         </div>
-        <div>
-          <label className="block font-bold text-slate-300 mb-1">Estado Técnico</label>
-          <select value={estado} onChange={(e) => setEstado(e.target.value as any)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-plaster focus:outline-none focus:border-sena-green">
-            <option value="Operativo">Operativo</option>
-            <option value="En Mantenimiento">En Mantenimiento</option>
-          </select>
+
+        {!isEditing ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 18, marginTop: 24 }}>
+            <div><strong>Placa SENA</strong><p style={{ margin: '8px 0 0' }}>{placaSena ?? 'N/A'}</p></div>
+            <div><strong>Marca</strong><p style={{ margin: '8px 0 0' }}>{datos.marca}</p></div>
+            <div><strong>Serial</strong><p style={{ margin: '8px 0 0' }}>{datos.serial}</p></div>
+            <div><strong>Responsable</strong><p style={{ margin: '8px 0 0' }}>{datos.responsable}</p></div>
+            <div><strong>Ubicación</strong><p style={{ margin: '8px 0 0' }}>{datos.ubicacion}</p></div>
+            <div><strong>Procesador</strong><p style={{ margin: '8px 0 0' }}>{datos.procesador}</p></div>
+            <div><strong>Memoria</strong><p style={{ margin: '8px 0 0' }}>{datos.memoria}</p></div>
+            <div><strong>Almacenamiento</strong><p style={{ margin: '8px 0 0' }}>{datos.almacenamiento}</p></div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 18, marginTop: 24 }}>
+            {Object.entries(form).map(([key, value]) => (
+              <label key={key} style={{ display: 'grid', gap: 6, fontWeight: 600 }}>
+                {key}
+                <input
+                  value={value}
+                  onChange={(event) => setForm((prev) => ({ ...prev, [key]: event.target.value }))}
+                  style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
+                />
+              </label>
+            ))}
+          </div>
+        )}
+
+        <div style={{ marginTop: 28 }}>
+          <h3 style={{ marginBottom: 12 }}>Historial</h3>
+          <ul style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 8, color: '#475569' }}>
+            {datos.historial.map((item: string) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
         </div>
-        <div>
-          <label className="block font-bold text-slate-300 mb-1">Ambiente Asignado</label>
-          <input type="text" value={ambiente} onChange={(e) => setAmbiente(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-plaster focus:outline-none focus:border-sena-green" />
-        </div>
-        <div className="pt-2 flex justify-end gap-3 font-sans">
-          <button type="button" onClick={() => navigate('/inventario')} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-bold text-slate-300">Volver</button>
-          <button type="submit" className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-soot font-bold rounded-xl text-xs shadow-lg">Actualizar Recurso (PUT)</button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

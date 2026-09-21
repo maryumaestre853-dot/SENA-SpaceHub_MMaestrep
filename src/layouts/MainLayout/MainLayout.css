@@ -1,0 +1,24 @@
+.layout-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #f3f7f2 0%, #f8fafc 100%);
+  color: #0f172a;
+}
+
+.content-viewport {
+  width: min(1200px, calc(100% - 32px));
+  margin: 24px auto 40px;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.sena-footer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-family: monospace;
+  padding: 1.5rem 1rem;
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}

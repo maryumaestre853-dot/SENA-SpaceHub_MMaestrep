@@ -1,72 +1,78 @@
-// =================================================================
-// Archivo: src/pages/NuevoEquipoPage/NuevoEquipoPage.tsx
-// =================================================================
-import React, { useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { equiposService } from '../../services/equiposService';
-import { useSpaceHubData } from '../../context/DataContext';
+
+const STORAGE_KEY = 'equipos';
 
 export default function NuevoEquipoPage() {
-  const { refrescarEquipos } = useSpaceHubData();
-  const [placaSena, setPlacaSena] = useState('');
-  const [marcaModelo, setMarcaModelo] = useState('');
-  const [ram, setRam] = useState('16GB DDR4');
-  const [ambiente, setAmbiente] = useState('Ambiente 301 - ADSO');
-  const [estado, setEstado] = useState<'Operativo' | 'En Mantenimiento'>('Operativo');
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [form, setForm] = useState({
+    placa: '',
+    tipo: 'Computador',
+    marca: '',
+    serial: '',
+    responsable: '',
+  });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      await equiposService.create({ placaSena, marcaModelo, ram, ambiente, estado });
-      await refrescarEquipos();
-      navigate('/inventario');
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al guardar equipo');
-    }
+  const handleChange = (field: string, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+
+    const nuevoEquipo = {
+      ...form,
+      estado: 'Activo',
+      ubicacion: 'Sin asignar',
+    };
+
+    const guardados = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
+    const listaActualizada = [...guardados, nuevoEquipo];
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(listaActualizada));
+    navigate('/inventario');
   };
 
   return (
-    <div className="max-w-lg mx-auto p-6 bg-slate-800 border border-slate-700 rounded-2xl text-plaster shadow-xl">
-      <h2 className="text-xl font-bold text-sena-green mb-1">Registrar Nuevo Equipo (POST)</h2>
-      <p className="text-xs text-slate-400 mb-4">Utilizando equiposService.create()</p>
-      {error && <div className="p-3 mb-4 bg-rose-900/80 border border-rose-500 rounded-xl text-rose-200 text-xs font-mono">{error}</div>}
-      <form onSubmit={handleSubmit} className="space-y-4 font-mono text-xs">
-        <div>
-          <label className="block font-bold text-slate-300 mb-1">Placa SENA</label>
-          <input type="text" required placeholder="SENA-1006" value={placaSena} onChange={(e) => setPlacaSena(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-plaster focus:outline-none focus:border-sena-green" />
-        </div>
-        <div>
-          <label className="block font-bold text-slate-300 mb-1">Marca / Modelo</label>
-          <input type="text" required placeholder="Lenovo ThinkPad L14 G3" value={marcaModelo} onChange={(e) => setMarcaModelo(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-plaster focus:outline-none focus:border-sena-green" />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block font-bold text-slate-300 mb-1">Memoria RAM</label>
-            <select value={ram} onChange={(e) => setRam(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-plaster focus:outline-none focus:border-sena-green">
-              <option value="8GB DDR4">8GB DDR4</option>
-              <option value="16GB DDR4">16GB DDR4</option>
-              <option value="32GB DDR5">32GB DDR5</option>
+    <div style={{ maxWidth: 700, margin: '0 auto', padding: 24 }}>
+      <h2 style={{ marginTop: 0 }}>Registrar nuevo equipo</h2>
+
+      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+          <label>
+            Placa SENA
+            <input value={form.placa} onChange={(e) => handleChange('placa', e.target.value)} style={{ width: '100%', padding: 10, marginTop: 6 }} />
+          </label>
+
+          <label>
+            Tipo
+            <select value={form.tipo} onChange={(e) => handleChange('tipo', e.target.value)} style={{ width: '100%', padding: 10, marginTop: 6 }}>
+              <option>Computador</option>
+              <option>Monitor</option>
+              <option>Teclado</option>
+              <option>Mouse</option>
             </select>
-          </div>
-          <div>
-            <label className="block font-bold text-slate-300 mb-1">Estado Inicial</label>
-            <select value={estado} onChange={(e) => setEstado(e.target.value as any)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-plaster focus:outline-none focus:border-sena-green">
-              <option value="Operativo">Operativo</option>
-              <option value="En Mantenimiento">En Mantenimiento</option>
-            </select>
-          </div>
+          </label>
+
+          <label>
+            Marca
+            <input value={form.marca} onChange={(e) => handleChange('marca', e.target.value)} style={{ width: '100%', padding: 10, marginTop: 6 }} />
+          </label>
+
+          <label>
+            Serial
+            <input value={form.serial} onChange={(e) => handleChange('serial', e.target.value)} style={{ width: '100%', padding: 10, marginTop: 6 }} />
+          </label>
         </div>
-        <div>
-          <label className="block font-bold text-slate-300 mb-1">Ambiente Asignado</label>
-          <input type="text" required value={ambiente} onChange={(e) => setAmbiente(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-plaster focus:outline-none focus:border-sena-green" />
-        </div>
-        <div className="pt-2 flex justify-end gap-3 font-sans">
-          <button type="button" onClick={() => navigate('/inventario')} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-bold text-slate-300">Cancelar</button>
-          <button type="submit" className="px-4 py-2 bg-sena-green hover:bg-emerald-600 text-slate-900 font-extrabold rounded-xl text-xs shadow-lg">Guardar Equipo (POST)</button>
-        </div>
+
+        <label>
+          Responsable
+          <input value={form.responsable} onChange={(e) => handleChange('responsable', e.target.value)} style={{ width: '100%', padding: 10, marginTop: 6 }} />
+        </label>
+
+        <button type="submit" style={{ padding: '12px 18px', background: '#0f766e', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+          Guardar equipo
+        </button>
       </form>
     </div>
   );
