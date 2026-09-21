@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Paleta SENA SpaceHub: azul petróleo · turquesa · celeste */
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  color: #EAF6F8;
+  background-color: #003A45;
+  /* Halos suaves para acercarse a la referencia visual */
+  background-image:
+    radial-gradient(900px 520px at 8% -8%, rgba(22, 166, 182, 0.28), transparent 70%),
+    radial-gradient(760px 460px at 100% 0%, rgba(185, 226, 232, 0.16), transparent 70%),
+    radial-gradient(700px 500px at 50% 115%, rgba(11, 102, 115, 0.28), transparent 70%);
+  background-attachment: fixed;
+}
+
+::selection { background: #5DD4D2; color: #003A45; }
+::placeholder { color: #79AEB5; opacity: 1; }
+
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #002B33; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #1D6670; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #16A6B6; }
